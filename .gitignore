@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# ignore json
+src/utils/leetcode_qns_graph.json
+
 # dependencies
 /node_modules
 /.pnp
