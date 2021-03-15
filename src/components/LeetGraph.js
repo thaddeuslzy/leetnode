@@ -1,4 +1,4 @@
-import { React, useRef, useCallback } from 'react';
+import { React, useRef, useCallback, useState, useMemo } from 'react';
 import { ForceGraph2D } from 'react-force-graph';
 import useWindowDimensions from '../utils/helpers';
 import graphData from '../utils/leetcode_qns_graph.json';
@@ -18,16 +18,16 @@ import {
 const LeetGraph = (props) => {
   const dispatch = useDispatch();
   // TODO: Highlight selected node and topic
-  const problemId = useSelector(getProblemId);
-  const problemTopics = useSelector(getProblemTopics);
+  // const problemId = useSelector(getProblemId);
+  // const problemTopics = useSelector(getProblemTopics);
 
   const graphRef = useRef();
 
   // TODO: Freeze graph rendering on drag end
-  const onNodeDragEnd = useCallback(node => {
-  }, [graphRef]);
+  // const onNodeDragEnd = useCallback(node => {
+  // }, [graphRef]);
 
-  const onNodeClick = useCallback(node => {
+  const handleNodeClick = useCallback(node => {
     graphRef.current.centerAt(node.x, node.y, 1000);
     graphRef.current.zoom(3, 1000);
     if (node.group===2) {
@@ -39,23 +39,23 @@ const LeetGraph = (props) => {
       dispatch(setProblemDownvotes(node.downvotes));
       dispatch(setProblemUrl(node.url));
     }
-  }, [graphRef]);
+  }, []);
 
-  const { height, width } = useWindowDimensions();
+  const { height, width } = useWindowDimensions(); // for responsive resizing of the canvas
 
   const nodeStyle = (node, ctx, globalScale) => {
     const label = node.id;
     const fontSize = 12/globalScale;
     ctx.font = `${fontSize}px Sans-Serif`;
     const textWidth = ctx.measureText(label).width;
-    const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
+    const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
     ctx.fillStyle = getNodeColor(node.group);
     ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = getTextColor(node.group);
     ctx.fillText(label, node.x, node.y);
-    node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+    node.__bckgDimensions = bckgDimensions;
   }
 
   const getNodeColor = n => {
@@ -78,11 +78,47 @@ const LeetGraph = (props) => {
     }
   }
 
+  const nodesById = useMemo(() => {
+    const nodesById = Object.fromEntries(graphData.nodes.map(node => [node.id, node]));
+
+    graphData.nodes.forEach(node => {
+      node.collapsed = node.group === 1;
+      node.childLinks = [];
+    });
+
+    graphData.links.forEach(link => {
+      nodesById[link.source].childLinks.push(link);
+    });
+    return nodesById;
+  }, []);
+
+  const getPrunedTree = useCallback(() => {
+    const visibleNodes = [];
+    const visibleLinks = [];
+    (function traverseTree(node = nodesById['Topics']) {
+      visibleNodes.push(node);
+      if (node.collapsed) return;
+      visibleLinks.push(...node.childLinks);
+      node.childLinks
+        .map(link => ((typeof link.target) === 'object') ? link.target : nodesById[link.target]) // get child node
+        .forEach(traverseTree);
+    })();
+
+    return { nodes: visibleNodes, links: visibleLinks };
+  }, [nodesById]);
+
+  const handleNodeRightClick = node => {
+    node.collapsed = !node.collapsed; // toggle collapse state
+    setPrunedTree(getPrunedTree())
+  };
+
+  const [prunedTree, setPrunedTree] = useState(getPrunedTree());
+
   const graph = <ForceGraph2D
-  ref={graphRef}
-    width={width-16}
-    height={height-16}
-    graphData={graphData}
+    ref={graphRef}
+    width={width}
+    height={height}
+    graphData={prunedTree}
     nodeAutoColorBy={n => n.group}
     nodeCanvasObject={nodeStyle}
     nodePointerAreaPaint={(node, color, ctx) => {
@@ -90,9 +126,12 @@ const LeetGraph = (props) => {
       const bckgDimensions = node.__bckgDimensions;
       bckgDimensions && ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
     }}
+    linkAutoColorBy={l => l.source}
+    linkWidth={1.5}
     // linkDirectionalArrowLength={5} // seems messier
     // onNodeDragEnd={onNodeDragEnd} // TODO: Implement
-    onNodeClick={onNodeClick}
+    onNodeClick={handleNodeClick}
+    onNodeRightClick={handleNodeRightClick}
   />
 
   return (
@@ -108,7 +147,14 @@ const LeetGraph = (props) => {
         }
         .force-graph-container {
           width: 100%;
-          height: 100%;
+          height: 95%;
+        }
+        .node-label {
+          font-size: 12px;
+          padding: 1px 4px;
+          border-radius: 4px;
+          background-color: black;
+          user-select: none;
         }
       `}
       </style>

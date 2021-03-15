@@ -1,4 +1,5 @@
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import Difficulty from './Difficulty';
 import {
   getProblemId,
   getProblemTitle,
@@ -9,6 +10,9 @@ import {
   getProblemUrl,
 } from '../slices/sidebar';
 
+import UPVOTE from '../static/images/upvote.png';
+import DOWNVOTE from '../static/images/downvote.png';
+
 const Problem = () => {
   const id = useSelector(getProblemId);
   const title = useSelector(getProblemTitle);
@@ -18,13 +22,6 @@ const Problem = () => {
   const downvotes = useSelector(getProblemDownvotes);
   const url = useSelector(getProblemUrl);
 
-  // TODO: Set difficulty text and color
-  const getDifficulty = (diff) => {
-    if (diff === '1') {
-    } else if (diff === '2') {
-    } else if (diff === '3') {
-    }
-  }
   return (
     <div className='problem-container'>
       <div className='problem-header-container'>
@@ -35,14 +32,18 @@ const Problem = () => {
           )}
         </div>
         <div className='stats-container'>
-          <p>{difficulty}</p>
+          <Difficulty
+          difficulty={difficulty}
+          />
           <div>
+            <img className='vote-icon' alt='upvote' src={UPVOTE} />
             <span>{upvotes}</span>
           </div>
           <div>
+            <img className='vote-icon' alt='upvote' src={DOWNVOTE} />
             <span>{downvotes}</span>
           </div>
-          <a href={url} target='_blank'>See Question</a>
+          <a href={url} target='_blank' rel="noreferrer">See Question</a>
         </div>
       </div>
       <p>Problem description feature coming soon!</p>
@@ -77,6 +78,10 @@ const Problem = () => {
       }
       .stats-container > * {
         margin: 0.5rem 0;
+      }
+      .vote-icon {
+        height: 0.875rem;
+        padding-right: 0.125rem;
       }
       `}
       </style>
