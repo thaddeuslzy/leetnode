@@ -47,6 +47,9 @@ const Problem = () => {
         </div>
       </div>
       <p>Problem description feature coming soon!</p>
+      <p>Click to focus on node</p>
+      <p>Right-Click to expand/collapse node</p>
+      <p>Click and drag to pan around the graph</p>
       <style jsx>{`
       .problem-container {
         padding: 1rem;
